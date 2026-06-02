@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trivia Interactiva de Redes</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-main: #000000;         
+            --bg-card: #1e293b;         
+            --text-main: #ffffff;       
+            --text-muted: #cbd5e1;      
+            --accent-yellow: #fef08a;   
+            --btn-primary: #2563eb;     
+            --btn-hover: #3b82f6;       
+            --border-color: #475569;    
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg-main); color: var(--text-main); display: flex; flex-direction: column; min-height: 100vh; align-items: center; justify-content: center; padding: 20px; }
+        
+        .container { background: var(--bg-card); width: 100%; max-width: 700px; padding: 35px; border-radius: 16px; border: 3px solid var(--border-color); text-align: center; position: relative; box-shadow: 0 0 20px rgba(255,255,255,0.1); }
+        h1 { color: var(--text-main); margin-bottom: 20px; font-size: 26px; font-weight: 800; letter-spacing: 0.5px; }
+        h3 { color: var(--text-main); font-size: 20px; line-height: 1.4; font-weight: 700; margin-bottom: 15px; }
+        p { margin-bottom: 20px; font-size: 16px; line-height: 1.6; color: var(--text-muted); }
+        
+        .drawing-container { font-size: 70px; margin: 15px 0; display: block; filter: drop-shadow(0 0 10px rgba(255,255,255,0.2)); }
+        
+        input { width: 100%; padding: 14px; margin: 12px 0; border: 3px solid #94a3b8; background-color: #0f172a; color: white; border-radius: 8px; font-size: 18px; font-weight: bold; outline: none; }
+        input:focus { border-color: #60a5fa; box-shadow: 0 0 10px rgba(96, 165, 250, 0.5); }
+        
+        button { background: var(--btn-primary); color: #ffffff; border: 2px solid #ffffff; padding: 16px 30px; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 15px; transition: background 0.2s; text-transform: uppercase; letter-spacing: 1px; }
+        button:hover { background: var(--btn-hover); }
+        button:disabled { background: #475569; color: #94a3b8; border-color: #334155; cursor: not-allowed; }
+        
+        .hidden { display: none !important; }
+        .icon-header { font-size: 55px; color: var(--accent-yellow); margin-bottom: 20px; filter: drop-shadow(0 0 8px rgba(254, 240, 138, 0.4)); }
+        
+        /* Opciones Múltiples */
+        .options-container { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 25px; }
+        .option-btn { background: #0f172a; border: 3px solid #64748b; text-align: left; padding: 16px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; color: #ffffff; transition: all 0.2s; display: flex; align-items: center; text-transform: none; letter-spacing: normal; }
+        .option-btn:hover { background: #1e293b; border-color: #94a3b8; }
+        .option-btn.selected { background: #1d4ed8; border-color: #ffffff; box-shadow: 0 0 12px rgba(255,255,255,0.3); }
+
+        /* Unir con Flechas */
+        .match-container { display: flex; justify-content: space-between; margin-top: 20px; gap: 15px; }
+        .match-col { flex: 1; display: flex; flex-direction: column; gap: 12px; }
+        .match-item { background: #0f172a; border: 3px solid #64748b; color: #ffffff; padding: 12px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; min-height: 75px; display: flex; align-items: center; justify-content: center; line-height: 1.4; }
+        .match-item:hover { border-color: #94a3b8; }
+        .match-item.selected { background: #ca8a04; border-color: #ffffff; color: #000000; font-weight: 800; }
+        .match-item.linked { background: #166534; border-color: #4ade80; color: #ffffff; cursor: not-allowed; opacity: 0.85; }
+
+        .credits { margin-top: 30px; font-size: 15px; color: var(--accent-yellow); font-weight: 700; border-top: 2px dashed var(--border-color); padding-top: 20px; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .progress-bar { width: 100%; height: 12px; background: #0f172a; border: 2px solid #475569; border-radius: 6px; margin-bottom: 25px; overflow: hidden; }
+        .progress-fill { height: 100%; background: #22c55e; width: 0%; transition: width 0.3s; }
+    </style>
+</head>
+<body>
+
+<div class="container" id="game-card">
+    <div id="screen-login">
+        <div class="icon-header"><i class="fas fa-network-wired"></i></div>
+        <h1>EVALUACIÓN DE REDES</h1>
+        <div class="drawing-container">🖥️⚡🌐</div>
+        <p>Introduce tus datos y el código asignado para comenzar el desafío.</p>
+        <input type="text" id="student-name" placeholder="Nombre y Apellido completo">
+        <input type="text" id="access-code" placeholder="Código de Acceso (Ej: ALUM1 hasta ALUM12 o DOCENTE)">
+        <button onclick="validateAccess()">Ingresar al Juego</button>
+    </div>
+
+    <div id="screen-game" class="hidden">
+        <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+        <div class="icon-header" id="question-icon"><i class="fas fa-wifi"></i></div>
+        
+        <div class="drawing-container" id="question-drawing">🎨</div>
+        
+        <h3 id="question-text">Pregunta aquí</h3>
+        
+        <div class="options-container" id="options-box"></div>
+
+        <div id="match-box" class="hidden">
+            <p style="font-size: 15px; color: var(--accent-yellow); font-weight: bold; margin-bottom: 15px;">
+                ¡CONSIGNA!: Haz clic en un concepto de la izquierda y luego en su relación correcta de la derecha.
+            </p>
+            <div class="match-container">
+                <div class="match-col" id="col-left"></div>
+                <div class="match-col" id="col-right"></div>
+            </div>
+        </div>
+
+        <button id="next-btn" onclick="nextQuestion()">Siguiente pregunta</button>
+    </div>
+
+    <div id="screen-sending" class="hidden">
+        <div class="icon-header"><i class="fas fa-paper-plane"></i></div>
+        <h1>GUARDANDO RESULTADOS...</h1>
+        <div class="drawing-container">⏳🚀</div>
+        <p style="color: #ffffff; font-weight: bold;">Estamos enviando las respuestas al registro de la docente. Por favor, espera en esta pantalla.</p>
+    </div>
+
+    <div id="screen-end" class="hidden">
+        <div class="icon-header"><i class="fas fa-trophy"></i></div>
+        <h1>¡DESAFÍO COMPLETADO!</h1>
+        <div class="drawing-container">🏆🎉🎓</div>
+        <p id="final-message" style="color: #ffffff; font-size: 18px;"></p>
+        <button onclick="exitGame()" style="background-color: #dc2626; border-color: #ffffff;">Salir del juego</button>
+    </div>
+
+    <div class="credits">Autora: Prof. Mariela L. Loza</div>
+</div>
+
+<script>
+    const CODE_TEACHER_VALID = "docente";   
+    
+    // REEMPLAZA AQUÍ CON TU URL COMPLETA O ID DE FORMSPREE
+    const FORMSPREE_URL = "https://formspree.io/f/maqkrkyg"; 
+
+    // Banco completo estructurado estrictamente de tus archivos (10 Choice y 10 Match con 3-4 opciones)
+    const rawQuestions = [
+        { q: "¿Qué es una red informática o de datos?", icon: "fa-network-wired", drawing: "💻📡💻", type: "choice", opts: ["Un conjunto de computadoras y dispositivos conectados para compartir información y recursos.", "Una aplicación para navegar por páginas web.", "El cableado que lleva electricidad a los hogares.", "Un programa para eliminar virus de los celulares."], a: 0 },
+        { q: "¿Cuál fue la primera red informática importante de la historia?", icon: "fa-history", drawing: "⏳📜", type: "choice", opts: ["Internet Explorer", "ARPANET", "World Wide Web", "WiFi Alliance"], a: 1 },
+        { q: "¿Qué significa estrictamente la palabra 'Internet'?", icon: "fa-globe", drawing: "🌍🔗", type: "choice", opts: ["Informática Internacional", "Red de interconexión (Interconnected Networks)", "Páginas Web Unidas", "Señal Inalámbrica de Alta Velocidad"], a: 1 },
+        { q: "¿Qué diferencia principal hay entre una red analógica y una red digital?", icon: "fa-wave-square", drawing: "〰️🔢", type: "choice", opts: ["La analógica transmite datos mediante ondas continuas; la digital usa valores binarios discretos (ceros y unos).", "La analógica es inalámbrica y la digital usa solo fibra óptica.", "La analógica no permite llamadas telefónicas y la digital sí.", "No hay diferencia, son sinónimos."], a: 0 },
+        { q: "¿Qué significan las siglas de una red LAN?", icon: "fa-house-signal", drawing: "🏠📶", type: "choice", opts: ["Local Area Network (Red de Área Local)", "Long Access Node (Nodo de Largo Acceso)", "Línea Analógica Nacional", "Libre Acceso de Navegación"], a: 0 },
+        { q: "¿Qué escala geográfica cubre una red MAN?", icon: "fa-city", drawing: "🏙️🏢", type: "choice", opts: ["El planeta entero.", "El interior de una habitación o casa.", "Un área metropolitana, como una ciudad o municipio.", "El espacio entre dos dispositivos Bluetooth."], a: 2 },
+        { q: "¿Qué es una Intranet?", icon: "fa-lock", drawing: "🏢🔒", type: "choice", opts: ["Una red pública accesible por cualquier persona del mundo.", "Una red informática privada y segura que pertenece a una organización o empresa.", "Un navegador de internet de código abierto.", "El sistema que distribuye los datos móviles."], a: 1 },
+        { q: "¿Qué es una Extranet?", icon: "fa-user-shield", drawing: "🤝🔒", type: "choice", opts: ["Una red privada que permite el acceso controlado a usuarios externos autorizados (clientes o proveedores).", "La red externa de fibra óptica submarina.", "Una conexión a internet que no requiere router.", "Una página web copiada de otra."], a: 0 },
+        { q: "¿Qué significa la sigla 'WWW'?", icon: "fa-cloud", drawing: "🕸️🌐", type: "choice", opts: ["World Wide Web (Red de Alcance Mundial)", "Web Windows Wireless", "Word Wide Work", "Web de Redes Mundiales"], a: 0 },
+        { q: "¿Qué es técnicamente una página web?", icon: "fa-file-code", drawing: "📄💻", type: "choice", opts: ["Un documento electrónico accesible a través de un navegador que contiene texto, imágenes o enlaces.", "Un programa que se instala en el disco duro para reparar redes.", "Un dispositivo físico que distribuye internet inalámbrico.", "Cualquier aplicación de mensajería instantánea."], a: 0 },
+        
+        { q: "Relacioná la escala de las redes de datos:", icon: "fa-diagram-project", drawing: "🗺️⚡", type: "match", pairs: [{ left: "LAN", right: "Red restringida a un entorno pequeño (Hogar, Escuela)." }, { left: "MAN", right: "Red de alcance metropolitano (Una ciudad)." }, { left: "Internet", right: "Red global y pública de computadoras interconectadas." }] },
+        { q: "Asociá las herramientas web según su tipo:", icon: "fa-compass", drawing: "🧭🔍", type: "match", pairs: [{ left: "Google Chrome", right: "Es un Navegador web utilizado para ingresar a sitios." }, { left: "Google.com", right: "Es un Buscador o motor de búsqueda de información." }, { left: "Hipervínculo", right: "Enlace o link interactivo que te redirige a otra sección." }] },
+        { q: "Uní los elementos de conexión inalámbrica:", icon: "fa-router", drawing: "📟📡", type: "match", pairs: [{ left: "Router", right: "Dispositivo físico que reparte Internet en un domicilio." }, { left: "WiFi", right: "Sigla de tecnología inalámbrica de redes de área local." }, { left: "Datos móviles", right: "Conexión que utiliza las antenas de telefonía celular." }] },
+        { q: "Vinculá las ventajas y desventajas de Internet:", icon: "fa-scale-balanced", drawing: "⚖️🌐", type: "match", pairs: [{ left: "Ventaja", right: "Acceso inmediato a la información global y educación." }, { left: "Desventaja", right: "Riesgos de privacidad, aislamiento y ciberdelitos." }, { left: "Estar en línea", right: "Estar activamente conectado a una red o a Internet." }] },
+        { q: "Relacioná los siguientes conceptos de comunicación moderna:", icon: "fa-video", drawing: "📞📱", type: "match", pairs: [{ left: "Videollamada", right: "Transmisión bidireccional en tiempo real de video y audio." }, { left: "Navegador web", right: "Programa necesario para poder ver páginas web." }, { left: "Página Web", right: "Documento electrónico digital con texto, imágenes o links." }] },
+        { q: "Uní los tipos de señales con sus características físicas:", icon: "fa-wave-square", drawing: "⚡🔢", type: "match", pairs: [{ left: "Señal Analógica", right: "Ondas continuas y variables en el tiempo." }, { left: "Señal Digital", right: "Valores binarios discretos representados en 0 y 1." }, { left: "Red informática", right: "Conjunto de computadoras conectadas para compartir recursos." }] },
+        { q: "Asociá los hitos de la historia y el entorno web:", icon: "fa-clock", drawing: "⏳💾", type: "match", pairs: [{ left: "ARPANET", right: "Primera red informática importante de la historia." }, { left: "WWW", right: "World Wide Web (Red de Alcance Mundial)." }, { left: "Buscador", right: "Sitio para rastrear contenidos ingresando palabras clave." }] },
+        { q: "Relacioná los accesos a redes empresariales:", icon: "fa-shield-halved", drawing: "🏢🔒", type: "match", pairs: [{ left: "Intranet", right: "Red informática privada y segura interna de una empresa." }, { left: "Extranet", right: "Red privada con acceso controlado a clientes o proveedores." }, { left: "Red de datos", right: "Sinónimo general de red informática de transporte." }] },
+        { q: "Uní los componentes claves de seguridad informática con su acción:", icon: "fa-user-shield", drawing: "🛡️🪱", type: "match", pairs: [{ left: "Virus Informático", right: "Programa malicioso que infecta, modifica o destruye archivos." }, { left: "Antivirus", right: "Software diseñado para detectar, bloquear y eliminar virus." }, { left: "Phishing", right: "Estafa digital para robar contraseñas simulando páginas reales." }, { left: "Cortafuegos", right: "Sistema de defensa que filtra el tráfico sospechoso de red." }] },
+        { q: "Relacioná las situaciones de colapso o usos habituales:", icon: "fa-triangle-exclamation", drawing: "💥🌐", type: "match", pairs: [{ left: "Caída mundial por un día", right: "Provocaría pérdidas comerciales y cortes en comunicaciones globales." }, { left: "Uso cotidiano", right: "Interactuar en redes sociales, estudiar o ver contenidos." }, { left: "Aplicaciones online", right: "Programas de mensajería o mapas que necesitan red fija." }, { left: "Empresa proveedora", right: "Compañía encargada de darnos el enlace de Internet." }] }
+    ];
+
+    // Mezclar el banco completo al iniciar el programa de forma 100% aleatoria
+    const questions = [...rawQuestions].sort(() => Math.random() - 0.5);
+
+    let currentIdx = 0;
+    let score = 0;
+    let studentName = "";
+    let accessMode = ""; 
+    let selectedOption = null;
+    let studentAnswers = [];
+
+    function playGameSound() {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(587.33, audioCtx.currentTime); 
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            oscillator.start();
+            gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.15);
+            oscillator.stop(audioCtx.currentTime + 0.15);
+        } catch(e) {
+            console.log("Audio no soportado");
+        }
+    }
+
+    function validateAccess() {
+        // .toLowerCase() para procesar tanto mayúsculas como minúsculas en el nombre y código
+        const nameInput = document.getElementById("student-name").value.trim().toLowerCase();
+        const codeInput = document.getElementById("access-code").value.trim().toLowerCase();
+
+        if (!nameInput) {
+            alert("Por favor, ingresa tu Nombre y Apellido.");
+            return;
+        }
+
+        // Expresión regular para validar alum1, alum2 ... hasta alum12 de manera flexible
+        const studentCodeRegex = /^alum([1-9]|1[0-2])$/;
+
+        if (codeInput === CODE_TEACHER_VALID) {
+            accessMode = "teacher";
+            studentName = "[DOCENTE EN PRUEBA] " + document.getElementById("student-name").value.trim();
+            alert("¡Modo Docente Activado! Podrás probar todo el juego de manera libre.");
+            startGame();
+        } else if (studentCodeRegex.test(codeInput)) {
+            accessMode = "student";
+            // Guardamos el formato original ingresado por el alumno para el reporte docente
+            studentName = document.getElementById("student-name").value.trim();
+            startGame();
+        } else {
+            alert("Código de acceso incorrecto. Recuerda que es desde ALUM1 hasta ALUM12 (o DOCENTE).");
+        }
+    }
+
+    function startGame() {
+        document.getElementById("screen-login").classList.add("hidden");
+        document.getElementById("screen-game").classList.remove("hidden");
+        showQuestion();
+    }
+
+    function showQuestion() {
+        selectedOption = null;
+        document.getElementById("next-btn").disabled = true;
+        
+        const progressPercent = (currentIdx / questions.length) * 100;
+        document.getElementById("progress").style.width = `${progressPercent}%`;
+
+        const currentQ = questions[currentIdx];
+        
+        const iconHeader = document.getElementById("question-icon");
+        iconHeader.className = `icon-header fas ${currentQ.icon}`;
+        document.getElementById("question-drawing").innerText = currentQ.drawing;
+        
+        document.getElementById("question-text").innerText = `PREGUNTA ${currentIdx + 1} de ${questions.length}: ${currentQ.q}`;
+
+        const optionsBox = document.getElementById("options-box");
+        const matchBox = document.getElementById("match-box");
+
+        if (currentQ.type === "choice") {
+            optionsBox.classList.remove("hidden");
+            matchBox.classList.add("hidden");
+            optionsBox.innerHTML = "";
+
+            currentQ.opts.forEach((opt, idx) => {
+                const btn = document.createElement("button");
+                btn.className = "option-btn";
+                btn.innerHTML = `<span style="color:var(--accent-yellow); margin-right:12px; font-weight:800; font-size:18px;">${String.fromCharCode(65 + idx)})</span> ${opt}`;
+                btn.onclick = () => selectChoice(idx, btn);
+                optionsBox.appendChild(btn);
+            });
+        } else if (currentQ.type === "match") {
+            optionsBox.classList.add("hidden");
+            matchBox.classList.remove("hidden");
+            initMatchQuestion(currentQ);
+        }
+    }
+
+    function selectChoice(index, element) {
+        playGameSound(); 
+        selectedOption = index;
+        const buttons = document.querySelectorAll(".option-btn");
+        buttons.forEach(b => b.classList.remove("selected"));
+        element.classList.add("selected");
+        document.getElementById("next-btn").disabled = false;
+    }
+
+    let activeLeft = null;
+    let matchAnswers = {};
+    
+    function initMatchQuestion(qData) {
+        const colLeft = document.getElementById("col-left");
+        const colRight = document.getElementById("col-right");
+        colLeft.innerHTML = "";
+        colRight.innerHTML = "";
+        matchAnswers = {};
+        activeLeft = null;
+
+        // Mezclar las columnas individualmente para romper el orden correlativo original
+        const shuffledLeft = [...qData.pairs].sort(() => Math.random() - 0.5);
+        const shuffledRight = [...qData.pairs].sort(() => Math.random() - 0.5);
+
+        shuffledLeft.forEach(pair => {
+            const item = document.createElement("div");
+            item.className = "match-item";
+            item.innerText = pair.left;
+            item.dataset.value = pair.left;
+            item.onclick = () => {
+                if(item.classList.contains("linked")) return;
+                playGameSound();
+                document.querySelectorAll("#col-left .match-item").forEach(i => i.classList.remove("selected"));
+                item.classList.add("selected");
+                activeLeft = pair.left;
+            };
+            colLeft.appendChild(item);
+        });
+
+        shuffledRight.forEach(pair => {
+            const item = document.createElement("div");
+            item.className = "match-item";
+            item.innerText = pair.right;
+            item.dataset.value = pair.right;
+            item.onclick = () => {
+                if(!activeLeft || item.classList.contains("linked")) return;
+                playGameSound();
+                
+                matchAnswers[activeLeft] = pair.right;
+                
+                const leftElem = Array.from(document.querySelectorAll("#col-left .match-item")).find(i => i.dataset.value === activeLeft);
+                leftElem.classList.remove("selected");
+                leftElem.classList.add("linked");
+                item.classList.add("linked");
+
+                activeLeft = null;
+
+                if(Object.keys(matchAnswers).length === qData.pairs.length) {
+                    document.getElementById("next-btn").disabled = false;
+                }
+            };
+            colRight.appendChild(item);
+        });
+    }
+
+    function nextQuestion() {
+        const currentQ = questions[currentIdx];
+        
+        if (currentQ.type === "choice") {
+            const isCorrect = (selectedOption === currentQ.a);
+            if (isCorrect) score += 5; 
+            studentAnswers.push({
+                pregunta: currentQ.q,
+                resultado: isCorrect ? "Correcto" : "Incorrecto"
+            });
+        } else if (currentQ.type === "match") {
+            let correctMatches = 0;
+            currentQ.pairs.forEach(p => {
+                if (matchAnswers[p.left] === p.right) {
+                    correctMatches++;
+                }
+            });
+            if(correctMatches === currentQ.pairs.length) score += 5; 
+            studentAnswers.push({
+                pregunta: currentQ.q,
+                resultado: `Uniones correctas: ${correctMatches} de ${currentQ.pairs.length}`
+            });
+        }
+
+        currentIdx++;
+
+        if (currentIdx < questions.length) {
+            showQuestion();
+        } else {
+            endGame();
+        }
+    }
+
+    function endGame() {
+        document.getElementById("screen-game").classList.add("hidden");
+        const notaFinal = score; 
+
+        if (accessMode === "teacher") {
+            document.getElementById("screen-end").classList.remove("hidden");
+            document.getElementById("final-message").innerHTML = `<strong>[MODO SIMULACIÓN DOCENTE]</strong><br><br>El juego funciona de forma óptima.<br>Nota calculada de esta sesión: <span style="color:var(--accent-yellow); font-size:24px; font-weight:bold;">${notaFinal} / 100</span>.`;
+            return;
+        }
+
+        document.getElementById("screen-sending").classList.remove("hidden");
+
+        const formData = {
+            Estudiante: studentName,
+            NotaFinal: `${notaFinal} / 100`,
+            DetalleRespuestas: JSON.stringify(studentAnswers)
+        };
+
+        fetch(FORMSPREE_URL, {
+            method: "POST",
+            headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => {
+            document.getElementById("screen-sending").classList.add("hidden");
+            document.getElementById("screen-end").classList.remove("hidden");
+            if (response.ok) {
+                document.getElementById("final-message").innerHTML = `¡Examen guardado, <strong>${studentName}</strong>!<br><br>Tus respuestas fueron enviadas con éxito a la planilla de la profesora Mariela.`;
+            } else {
+                document.getElementById("final-message").innerText = "Hubo un problema enviando el examen por Formspree. Por favor toma captura de pantalla de tu nota y avisa a tu profesora.";
+            }
+        })
+        .catch(error => {
+            document.getElementById("screen-sending").classList.add("hidden");
+            document.getElementById("screen-end").classList.remove("hidden");
+            document.getElementById("final-message").innerText = "Error de red al procesar los datos. Comunícate con la docente.";
+        });
+    }
+
+    function exitGame() {
+        window.close();
+        document.getElementById("game-card").innerHTML = `
+            <div class="icon-header" style="color:#ef4444;"><i class="fas fa-power-off"></i></div>
+            <h1>JUEGO FINALIZADO</h1>
+            <p style="color:white; font-size:18px;">Ya puedes cerrar la ventana o pestaña de tu navegador.</p>
+            <div class="credits">Autora: Prof. Mariela L. Loza</div>
+        `;
+    }
+</script>
+</body>
+</html>
